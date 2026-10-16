@@ -37,3 +37,19 @@ export async function workLogsInMonth(month: string, projectId: string | null): 
 export function countsInTotals(row: { _error?: string }): boolean {
   return !row._error;
 }
+
+/**
+ * Entries dated from the start of `fromMonth` up to, not including, the start
+ * of `toMonth`, deleted ones included (the report helpers filter them out).
+ */
+export async function transactionsInRange(
+  fromMonth: string,
+  toMonth: string,
+  projectId: string | null,
+): Promise<LocalTransaction[]> {
+  return localDb.transactions
+    .where("date")
+    .between(`${fromMonth}-01`, `${toMonth}-01`, true, false)
+    .filter((t) => !projectId || t.projectId === projectId)
+    .toArray();
+}

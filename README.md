@@ -2,7 +2,7 @@
 
 Offline-first app for the daily accounts and work reports of the Green Hill garden in Sreemangal. The full brief is in [CLAUDE.md](CLAUDE.md); decisions and their reasons are in [DECISIONS.md](DECISIONS.md).
 
-Status: milestone 3 (offline and sync) done: the app installs on the phone, works without internet and syncs both ways.
+Status: milestone 4 (reports and dashboard) done: monthly reports per project and for all projects, and month totals on the home screen. Earlier: offline use and two-way sync (milestone 3).
 
 ## Run it locally
 

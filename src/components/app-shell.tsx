@@ -41,6 +41,7 @@ const NAV = [
   { href: "/", label: "হোম" },
   { href: "/accounts", label: "হিসাব" },
   { href: "/work", label: "কাজ" },
+  { href: "/reports", label: "রিপোর্ট" },
   { href: "/settings", label: "সেটিংস" },
 ];
 
@@ -102,7 +103,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         {children}
       </div>
       <nav className="fixed inset-x-0 bottom-0 border-t-2 border-border bg-background">
-        <ul className="mx-auto grid max-w-xl grid-cols-4">
+        <ul className="mx-auto grid max-w-xl grid-cols-5">
           {NAV.map((item) => {
             const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
             return (

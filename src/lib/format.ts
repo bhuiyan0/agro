@@ -46,3 +46,14 @@ export function sumAmounts(amounts: string[]): number {
   const paisa = amounts.reduce((acc, a) => acc + Math.round(Number(a) * 100), 0);
   return paisa / 100;
 }
+
+/** Balance with an explicit sign: "+ ৳ ১,২০০" or "− ৳ ৩০০". */
+export function formatBalance(value: number): string {
+  if (value === 0) return formatAmount(0);
+  return `${value > 0 ? "+" : "−"} ${formatAmount(Math.abs(value))}`;
+}
+
+/** A 0-1 share as a whole percentage: "৪২%". */
+export function formatShare(share: number): string {
+  return `${formatNumber(Math.round(share * 100))}%`;
+}

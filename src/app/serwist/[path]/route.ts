@@ -14,6 +14,7 @@ const PAGES = [
   "/work",
   "/work/new",
   "/work/edit",
+  "/reports",
   "/settings",
   "/settings/projects",
   "/settings/users",

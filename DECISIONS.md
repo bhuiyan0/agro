@@ -57,3 +57,15 @@ Each entry: what was decided, and why. Newest at the bottom.
 - **Client sync tests use `fake-indexeddb` (dev only)**, approved by the owner. They run the real sync engine against the real route handlers and test database, so they cover the phone and the server together.
 - **When a pull starts over, rows changed after the server's settle cutoff are kept**, and the new cursor is stored only after the last page. The first version removed every synced row the restart did not send, which briefly dropped a row the phone had just pushed; the client tests caught it.
 - **Refused entries are left out of totals and reports** (owner's choice), so both phones show the same numbers. Entries still waiting to be sent do count. Refused entries stay visible in the lists, marked in red.
+
+## 2026-10-16: Milestone 4 (reports and dashboard)
+
+- **Reports are computed on the phone from the local copy**, so they work offline. A server reports endpoint can follow with the web back office; the arithmetic lives in `src/lib/report.ts` and can be reused there.
+- **Simple bars, no chart library** (owner's choice): no new dependency, light on a low-end phone.
+- **A six-month trend** under the chosen month (owner's choice).
+- **Money only on the Reports screen**, as in the spec (owner's choice); no work summary.
+- **Home also shows this month's expense, income and profit/loss** (owner's choice), linking to Reports.
+- **"All projects" counts each entry exactly once:** totals are a plain sum over distinct entries (de-duplicated by id), and a test checks that the per-project lines add up to the all-projects total.
+- **Totals leave out deleted and server-refused entries; entries still waiting to be sent count.**
+- **Profit or loss is labelled "লাভ" / "ক্ষতি"** with an explicit sign.
+- **Reports is a fifth tab** in the bottom bar and is precached for offline use.
