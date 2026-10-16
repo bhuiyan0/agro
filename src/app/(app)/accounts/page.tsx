@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useApp } from "@/components/app-shell";
 import { MonthPicker, ProjectSelector } from "@/components/pickers";
-import { transactionsInMonth } from "@/client/queries";
+import { countsInTotals, transactionsInMonth } from "@/client/queries";
 import { useLiveQuery } from "@/client/use-live-query";
 import { RowStatus } from "@/components/sync-status";
 import { Chips, EmptyState, PageHeader } from "@/components/ui";
@@ -24,8 +24,9 @@ export default function AccountsPage() {
   const rows = (data ?? []).filter((t) => type === "ALL" || t.type === type);
   const projectName = new Map(me.projects.map((p) => [p.id, p.name]));
 
-  const expense = sumAmounts(rows.filter((t) => t.type === "EXPENSE").map((t) => t.amount));
-  const income = sumAmounts(rows.filter((t) => t.type === "INCOME").map((t) => t.amount));
+  const counted = rows.filter(countsInTotals);
+  const expense = sumAmounts(counted.filter((t) => t.type === "EXPENSE").map((t) => t.amount));
+  const income = sumAmounts(counted.filter((t) => t.type === "INCOME").map((t) => t.amount));
 
   return (
     <main className="flex flex-col">

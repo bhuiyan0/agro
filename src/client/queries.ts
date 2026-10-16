@@ -28,3 +28,12 @@ export async function workLogsInMonth(month: string, projectId: string | null): 
     .toArray();
   return rows.sort(byNewest);
 }
+
+/**
+ * Whether a row counts in totals and reports. A change the server refused
+ * is left out until it is fixed, so both phones show the same totals.
+ * Entries still waiting to be sent do count.
+ */
+export function countsInTotals(row: { _error?: string }): boolean {
+  return !row._error;
+}

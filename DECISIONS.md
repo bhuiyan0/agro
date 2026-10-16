@@ -54,4 +54,6 @@ Each entry: what was decided, and why. Newest at the bottom.
 - **Serwist via `@serwist/turbopack`**, which needs `esbuild` (added as a dev dependency) to bundle the worker. The worker is hand-configured rather than using Serwist's default cache rules: all pages and built assets are precached, query strings are ignored when matching, and the API is never cached.
 - **Serwist's "reload when back online" is off.** It would throw away a half-filled form.
 - **App icons** are a white leaf on green, generated as PNGs (192, 512 and a maskable 512).
-- **Client sync code has no automated tests in CI yet.** It was checked in a real browser against the production build (offline create, edit, reload, conflict, rejection, discard). Testing it in Vitest would need `fake-indexeddb` (dev only), which is not on the approved list.
+- **Client sync tests use `fake-indexeddb` (dev only)**, approved by the owner. They run the real sync engine against the real route handlers and test database, so they cover the phone and the server together.
+- **When a pull starts over, rows changed after the server's settle cutoff are kept**, and the new cursor is stored only after the last page. The first version removed every synced row the restart did not send, which briefly dropped a row the phone had just pushed; the client tests caught it.
+- **Refused entries are left out of totals and reports** (owner's choice), so both phones show the same numbers. Entries still waiting to be sent do count. Refused entries stay visible in the lists, marked in red.

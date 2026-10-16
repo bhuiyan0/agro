@@ -6,7 +6,7 @@
 import Link from "next/link";
 import { useApp } from "@/components/app-shell";
 import { ProjectSelector } from "@/components/pickers";
-import { transactionsInMonth, workLogsInMonth } from "@/client/queries";
+import { countsInTotals, transactionsInMonth, workLogsInMonth } from "@/client/queries";
 import { useLiveQuery } from "@/client/use-live-query";
 import { todayIso } from "@/lib/dates";
 import { formatAmount, formatDate, formatNumber, sumAmounts } from "@/lib/format";
@@ -24,10 +24,10 @@ export default function HomePage() {
     return { txns: txns.filter((t) => t.date === today), logs: logs.filter((w) => w.date === today) };
   }, [today, projectId]);
 
-  const todays = data?.txns ?? [];
+  const todays = (data?.txns ?? []).filter(countsInTotals);
   const expense = sumAmounts(todays.filter((t) => t.type === "EXPENSE").map((t) => t.amount));
   const income = sumAmounts(todays.filter((t) => t.type === "INCOME").map((t) => t.amount));
-  const workCount = data?.logs.length ?? 0;
+  const workCount = data?.logs.filter(countsInTotals).length ?? 0;
   const loading = !data;
 
   return (
