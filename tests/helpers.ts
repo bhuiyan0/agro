@@ -5,7 +5,7 @@ import { createSession, SESSION_COOKIE } from "@/lib/session";
 
 export async function resetDb() {
   await db.$executeRawUnsafe(
-    'TRUNCATE "Session", "ProjectMember", "Plot", "Transaction", "WorkLog", "Project", "User" CASCADE',
+    'TRUNCATE "Session", "ProcessedMutation", "ProjectMember", "Plot", "Transaction", "WorkLog", "Project", "User" CASCADE',
   );
 }
 

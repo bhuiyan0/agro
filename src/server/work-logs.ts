@@ -1,6 +1,6 @@
 import type { WorkLog } from "@/generated/prisma/client";
 import { fromDbDate, monthRange, toDbDate } from "@/lib/dates";
-import { db } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { HttpError } from "@/lib/http";
 import type { WorkLogInput } from "@/lib/schemas";
 import type { SessionUser } from "@/lib/session";
@@ -46,7 +46,7 @@ export async function listWorkLogs(
   const projectIds = filter.projectId
     ? [(await requireMember(user, filter.projectId)).id]
     : await memberProjectIds(user);
-  const rows = await db.workLog.findMany({
+  const rows = await getDb().workLog.findMany({
     where: {
       projectId: { in: projectIds },
       deletedAt: null,
@@ -62,7 +62,7 @@ export async function listWorkLogs(
 }
 
 async function findVisible(user: SessionUser, id: string) {
-  const row = await db.workLog.findUnique({ where: { id } });
+  const row = await getDb().workLog.findUnique({ where: { id } });
   if (!row) throw new HttpError("NOT_FOUND", 404);
   await requireMember(user, row.projectId);
   return row;
@@ -80,7 +80,7 @@ export async function getWorkLog(user: SessionUser, id: string) {
  * response is safe.
  */
 export async function createWorkLog(user: SessionUser, id: string, input: WorkLogInput) {
-  const existing = await db.workLog.findUnique({ where: { id } });
+  const existing = await getDb().workLog.findUnique({ where: { id } });
   if (existing) {
     if (existing.projectId !== input.projectId) throw new HttpError("ID_CONFLICT", 409);
     await requireMember(user, existing.projectId);
@@ -88,7 +88,7 @@ export async function createWorkLog(user: SessionUser, id: string, input: WorkLo
   }
   await requireMember(user, input.projectId, { write: true });
   await requirePlotInProject(input.plotId, input.projectId);
-  const row = await db.workLog.create({
+  const row = await getDb().workLog.create({
     data: { id, ...toData(input), createdBy: user.id, updatedBy: user.id },
   });
   return { created: true, row: serializeWorkLog(row) };
@@ -100,7 +100,7 @@ export async function updateWorkLog(user: SessionUser, id: string, input: WorkLo
   await requireMember(user, existing.projectId, { write: true });
   if (input.projectId !== existing.projectId) await requireMember(user, input.projectId, { write: true });
   await requirePlotInProject(input.plotId, input.projectId);
-  const row = await db.workLog.update({ where: { id }, data: { ...toData(input), updatedBy: user.id } });
+  const row = await getDb().workLog.update({ where: { id }, data: { ...toData(input), updatedBy: user.id } });
   return serializeWorkLog(row);
 }
 
@@ -109,7 +109,7 @@ export async function deleteWorkLog(user: SessionUser, id: string) {
   const existing = await findVisible(user, id);
   if (existing.deletedAt) return serializeWorkLog(existing);
   await requireMember(user, existing.projectId, { write: true });
-  const row = await db.workLog.update({
+  const row = await getDb().workLog.update({
     where: { id },
     data: { deletedAt: new Date(), updatedBy: user.id },
   });

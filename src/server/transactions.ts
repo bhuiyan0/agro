@@ -1,6 +1,6 @@
 import type { Transaction } from "@/generated/prisma/client";
 import { fromDbDate, monthRange, toDbDate } from "@/lib/dates";
-import { db } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { HttpError } from "@/lib/http";
 import type { TransactionInput } from "@/lib/schemas";
 import type { SessionUser } from "@/lib/session";
@@ -46,7 +46,7 @@ export async function listTransactions(
   const projectIds = filter.projectId
     ? [(await requireMember(user, filter.projectId)).id]
     : await memberProjectIds(user);
-  const rows = await db.transaction.findMany({
+  const rows = await getDb().transaction.findMany({
     where: {
       projectId: { in: projectIds },
       deletedAt: null,
@@ -62,7 +62,7 @@ export async function listTransactions(
 }
 
 async function findVisible(user: SessionUser, id: string) {
-  const row = await db.transaction.findUnique({ where: { id } });
+  const row = await getDb().transaction.findUnique({ where: { id } });
   if (!row) throw new HttpError("NOT_FOUND", 404);
   await requireMember(user, row.projectId);
   return row;
@@ -80,7 +80,7 @@ export async function getTransaction(user: SessionUser, id: string) {
  * response is safe.
  */
 export async function createTransaction(user: SessionUser, id: string, input: TransactionInput) {
-  const existing = await db.transaction.findUnique({ where: { id } });
+  const existing = await getDb().transaction.findUnique({ where: { id } });
   if (existing) {
     if (existing.projectId !== input.projectId) throw new HttpError("ID_CONFLICT", 409);
     await requireMember(user, existing.projectId);
@@ -88,7 +88,7 @@ export async function createTransaction(user: SessionUser, id: string, input: Tr
   }
   await requireMember(user, input.projectId, { write: true });
   await requirePlotInProject(input.plotId, input.projectId);
-  const row = await db.transaction.create({
+  const row = await getDb().transaction.create({
     data: { id, ...toData(input), createdBy: user.id, updatedBy: user.id },
   });
   return { created: true, row: serializeTransaction(row) };
@@ -100,7 +100,10 @@ export async function updateTransaction(user: SessionUser, id: string, input: Tr
   await requireMember(user, existing.projectId, { write: true });
   if (input.projectId !== existing.projectId) await requireMember(user, input.projectId, { write: true });
   await requirePlotInProject(input.plotId, input.projectId);
-  const row = await db.transaction.update({ where: { id }, data: { ...toData(input), updatedBy: user.id } });
+  const row = await getDb().transaction.update({
+    where: { id },
+    data: { ...toData(input), updatedBy: user.id },
+  });
   return serializeTransaction(row);
 }
 
@@ -109,7 +112,7 @@ export async function deleteTransaction(user: SessionUser, id: string) {
   const existing = await findVisible(user, id);
   if (existing.deletedAt) return serializeTransaction(existing);
   await requireMember(user, existing.projectId, { write: true });
-  const row = await db.transaction.update({
+  const row = await getDb().transaction.update({
     where: { id },
     data: { deletedAt: new Date(), updatedBy: user.id },
   });

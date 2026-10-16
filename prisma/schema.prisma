@@ -129,3 +129,17 @@ model WorkLog {
   @@index([projectId, date])
   @@index([updatedAt, id])
 }
+
+// Sync push idempotency: every mutation a device sends carries a
+// device-generated id. Once applied (or rejected), its result is stored here,
+// so sending the same mutation again returns the same result and changes
+// nothing.
+model ProcessedMutation {
+  mutationId String   @id
+  userId     String
+  status     String
+  code       String?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+}

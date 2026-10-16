@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { HttpError } from "@/lib/http";
 import type { SessionUser } from "@/lib/session";
 
@@ -17,7 +17,7 @@ export function requireOwner(user: SessionUser) {
  * `write`, the project must also be active: archived projects are read-only.
  */
 export async function requireMember(user: SessionUser, projectId: string, opts: { write?: boolean } = {}) {
-  const member = await db.projectMember.findUnique({
+  const member = await getDb().projectMember.findUnique({
     where: { projectId_userId: { projectId, userId: user.id } },
     include: { project: true },
   });
@@ -28,7 +28,7 @@ export async function requireMember(user: SessionUser, projectId: string, opts: 
 
 /** Ids of the non-deleted projects the user is a member of. */
 export async function memberProjectIds(user: SessionUser): Promise<string[]> {
-  const rows = await db.projectMember.findMany({
+  const rows = await getDb().projectMember.findMany({
     where: { userId: user.id, project: { deletedAt: null } },
     select: { projectId: true },
   });
@@ -38,6 +38,6 @@ export async function memberProjectIds(user: SessionUser): Promise<string[]> {
 /** Check that a plot exists in the given project. */
 export async function requirePlotInProject(plotId: string | null, projectId: string) {
   if (!plotId) return;
-  const plot = await db.plot.findFirst({ where: { id: plotId, projectId, deletedAt: null } });
+  const plot = await getDb().plot.findFirst({ where: { id: plotId, projectId, deletedAt: null } });
   if (!plot) throw new HttpError("VALIDATION_FAILED", 400);
 }
