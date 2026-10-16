@@ -1,9 +1,10 @@
+import { withSerwist } from "@serwist/turbopack";
 import type { NextConfig } from "next";
 
+// Cache Components is off: every screen is a client component that reads
+// from IndexedDB, so nothing uses it, and Serwist's service-worker route
+// needs the route segment options it forbids.
 const nextConfig: NextConfig = {
-  /* config options here */
-  cacheComponents: true,
-  partialPrefetching: true,
   turbopack: {
     rules: {
       "*.css": {
@@ -14,4 +15,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSerwist(nextConfig);
