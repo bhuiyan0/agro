@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { api } from "@/lib/api-client";
+import { clearLocalData, getMeta } from "@/client/local-db";
+import { api, type Me } from "@/lib/api-client";
 import { errorMessage } from "@/lib/messages";
 
 export default function LoginPage() {
@@ -16,10 +17,16 @@ export default function LoginPage() {
     event.preventDefault();
     setBusy(true);
     setError(null);
-    const result = await api("/api/auth/login", { method: "POST", body: { phone, password } });
+    const result = await api<{ user: Me["user"] }>("/api/auth/login", {
+      method: "POST",
+      body: { phone, password },
+    });
     setBusy(false);
-    if (result.ok) router.replace("/");
-    else setError(errorMessage(result.code));
+    if (!result.ok) return setError(errorMessage(result.code));
+    // Someone else used this phone before: start with an empty local copy.
+    const previous = await getMeta("me");
+    if (previous && previous.user.id !== result.data.user.id) await clearLocalData();
+    router.replace("/");
   }
 
   return (

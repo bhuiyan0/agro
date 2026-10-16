@@ -2,7 +2,7 @@
 
 Offline-first app for the daily accounts and work reports of the Green Hill garden in Sreemangal. The full brief is in [CLAUDE.md](CLAUDE.md); decisions and their reasons are in [DECISIONS.md](DECISIONS.md).
 
-Status: milestone 2 (online CRUD) done: projects, users, accounts and work reports, working online.
+Status: milestone 3 (offline and sync) done: the app installs on the phone, works without internet and syncs both ways.
 
 ## Run it locally
 
@@ -42,20 +42,26 @@ CI runs the same steps on every push.
 
 All responses are JSON. Errors look like `{ "error": { "code": "INVALID_CREDENTIALS" } }`. Every endpoint except login needs the session cookie and checks project membership on the server.
 
-| Method           | Path                        | What it does                                                          |
-| ---------------- | --------------------------- | --------------------------------------------------------------------- |
-| POST             | `/api/auth/login`           | `{ phone, password }`. Sets the session cookie.                       |
-| POST             | `/api/auth/logout`          | Ends the session and clears the cookie.                               |
-| GET              | `/api/auth/me`              | The logged-in user and their projects.                                |
-| GET, POST        | `/api/projects`             | List the user's projects; create one (owner).                         |
-| PATCH            | `/api/projects/:id`         | Rename, archive or restore (owner).                                   |
-| GET, PUT         | `/api/projects/:id/members` | List members; set the managers (owner).                               |
-| GET, POST        | `/api/users`                | List users; add one (owner).                                          |
-| PATCH            | `/api/users/:id`            | Change name, role or password (owner).                                |
-| GET, POST        | `/api/transactions`         | List (`projectId`, `type`, `month=YYYY-MM`); create with a device id. |
-| GET, PUT, DELETE | `/api/transactions/:id`     | Read, replace, soft delete.                                           |
-| GET, POST        | `/api/work-logs`            | List (`projectId`, `workType`, `month`); create with a device id.     |
-| GET, PUT, DELETE | `/api/work-logs/:id`        | Read, replace, soft delete.                                           |
+| Method           | Path                        | What it does                                                             |
+| ---------------- | --------------------------- | ------------------------------------------------------------------------ |
+| POST             | `/api/auth/login`           | `{ phone, password }`. Sets the session cookie.                          |
+| POST             | `/api/auth/logout`          | Ends the session and clears the cookie.                                  |
+| GET              | `/api/auth/me`              | The logged-in user and their projects.                                   |
+| GET, POST        | `/api/projects`             | List the user's projects; create one (owner).                            |
+| PATCH            | `/api/projects/:id`         | Rename, archive or restore (owner).                                      |
+| GET, PUT         | `/api/projects/:id/members` | List members; set the managers (owner).                                  |
+| GET, POST        | `/api/users`                | List users; add one (owner).                                             |
+| PATCH            | `/api/users/:id`            | Change name, role or password (owner).                                   |
+| GET, POST        | `/api/transactions`         | List (`projectId`, `type`, `month=YYYY-MM`); create with a device id.    |
+| GET, PUT, DELETE | `/api/transactions/:id`     | Read, replace, soft delete.                                              |
+| GET, POST        | `/api/work-logs`            | List (`projectId`, `workType`, `month`); create with a device id.        |
+| GET, PUT, DELETE | `/api/work-logs/:id`        | Read, replace, soft delete.                                              |
+| POST             | `/api/sync/push`            | `{ mutations: [...] }`, applied in order; one result per mutation.       |
+| GET              | `/api/sync/pull`            | Changes since `?cursor=`, deleted rows included; repeat while `hasMore`. |
+
+## Offline
+
+The service worker is only active in a production build (`npm run build && npm start`). To try offline mode, open the app once online, then switch the phone or browser to offline: entries save on the phone and show "পাঠানো বাকি" until the connection returns.
 
 ## Deploying (Vercel + Neon)
 

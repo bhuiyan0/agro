@@ -4,12 +4,13 @@ import Link from "next/link";
 import { useState } from "react";
 import { useApp } from "@/components/app-shell";
 import { MonthPicker, ProjectSelector } from "@/components/pickers";
-import { Chips, EmptyState, ErrorBox, PageHeader } from "@/components/ui";
-import type { Transaction } from "@/lib/api-client";
+import { transactionsInMonth } from "@/client/queries";
+import { useLiveQuery } from "@/client/use-live-query";
+import { RowStatus } from "@/components/sync-status";
+import { Chips, EmptyState, PageHeader } from "@/components/ui";
 import { todayIso } from "@/lib/dates";
 import { formatAmount, formatDate, sumAmounts } from "@/lib/format";
 import { groupByDate } from "@/lib/group";
-import { useFetch } from "@/lib/use-fetch";
 
 type TypeFilter = "ALL" | "EXPENSE" | "INCOME";
 
@@ -18,11 +19,9 @@ export default function AccountsPage() {
   const [month, setMonth] = useState(() => todayIso().slice(0, 7));
   const [type, setType] = useState<TypeFilter>("ALL");
 
-  const params = new URLSearchParams({ month });
-  if (selected !== "all") params.set("projectId", selected);
-  if (type !== "ALL") params.set("type", type);
-  const { data, error, loading } = useFetch<{ transactions: Transaction[] }>(`/api/transactions?${params}`);
-  const rows = data?.transactions ?? [];
+  const projectId = selected === "all" ? null : selected;
+  const data = useLiveQuery(() => transactionsInMonth(month, projectId), [month, projectId]);
+  const rows = (data ?? []).filter((t) => type === "ALL" || t.type === type);
   const projectName = new Map(me.projects.map((p) => [p.id, p.name]));
 
   const expense = sumAmounts(rows.filter((t) => t.type === "EXPENSE").map((t) => t.amount));
@@ -67,8 +66,7 @@ export default function AccountsPage() {
       </div>
 
       <div className="flex flex-col gap-4 px-4">
-        <ErrorBox message={error} />
-        {loading && !data ? (
+        {!data ? (
           <p className="text-muted">লোড হচ্ছে...</p>
         ) : rows.length === 0 ? (
           <EmptyState>এই মাসে কোনো হিসাব নেই।</EmptyState>
@@ -90,6 +88,7 @@ export default function AccountsPage() {
                             .filter(Boolean)
                             .join(" · ")}
                         </span>
+                        <RowStatus pending={t._pending} error={t._error} />
                       </span>
                       <span
                         className={`shrink-0 text-lg font-bold ${t.type === "EXPENSE" ? "text-danger" : "text-primary"}`}

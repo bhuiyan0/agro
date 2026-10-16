@@ -4,7 +4,9 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { DateField, ProjectField, readLocal, useDefaultProject, writeLocal } from "@/components/pickers";
 import { Chips, ErrorBox, Field, inputClass, PrimaryButton, SecondaryButton } from "@/components/ui";
-import { api, type WorkLog } from "@/lib/api-client";
+import type { LocalWorkLog } from "@/client/local-db";
+import { deleteEntry, discardLocal, saveEntry } from "@/client/store";
+import { useApp } from "@/components/app-shell";
 import { WORK_TYPES } from "@/lib/categories";
 import { todayIso } from "@/lib/dates";
 import { errorMessage } from "@/lib/messages";
@@ -20,8 +22,9 @@ function defaultWorkType(): string {
 }
 
 /** New or edit form for one work report. */
-export function WorkLogForm({ existing }: { existing?: WorkLog }) {
+export function WorkLogForm({ existing }: { existing?: LocalWorkLog }) {
   const router = useRouter();
+  const { me } = useApp();
   const defaultProject = useDefaultProject(LAST_PROJECT);
   const [id] = useState(() => existing?.id ?? crypto.randomUUID());
   const [workType, setWorkType] = useState(() => existing?.workType ?? defaultWorkType());
@@ -59,11 +62,9 @@ export function WorkLogForm({ existing }: { existing?: WorkLog }) {
     }
     setBusy(true);
     setError(null);
-    const result = existing
-      ? await api(`/api/work-logs/${id}`, { method: "PUT", body: parsed.data })
-      : await api("/api/work-logs", { method: "POST", body: { id, ...parsed.data } });
+    // Saved on the phone at once; it reaches the server on the next sync.
+    await saveEntry("workLog", id, parsed.data, me.user.id);
     setBusy(false);
-    if (!result.ok) return setError(errorMessage(result.code));
     writeLocal(LAST_WORK_TYPE, workType);
     writeLocal(LAST_PROJECT, projectId);
     router.push("/work");
@@ -72,9 +73,13 @@ export function WorkLogForm({ existing }: { existing?: WorkLog }) {
   async function onDelete() {
     if (!confirm("এই কাজের রিপোর্টটি মুছে ফেলবেন?")) return;
     setBusy(true);
-    const result = await api(`/api/work-logs/${id}`, { method: "DELETE" });
-    setBusy(false);
-    if (!result.ok) return setError(errorMessage(result.code));
+    await deleteEntry("workLog", id, me.user.id);
+    router.push("/work");
+  }
+
+  async function onDiscard() {
+    if (!confirm("এই বদলটি বাতিল করবেন? সার্ভারে যা আছে সেটিই থাকবে।")) return;
+    await discardLocal("workLog", id);
     router.push("/work");
   }
 
@@ -131,11 +136,21 @@ export function WorkLogForm({ existing }: { existing?: WorkLog }) {
         />
       </Field>
 
+      {existing?._error && (
+        <ErrorBox
+          message={`সার্ভার এই এন্ট্রিটি নেয়নি: ${errorMessage(existing._error)} ঠিক করে আবার সংরক্ষণ করুন, অথবা বাতিল করুন।`}
+        />
+      )}
       <ErrorBox message={error} />
       <PrimaryButton disabled={busy}>{busy ? "অপেক্ষা করুন..." : "সংরক্ষণ করুন"}</PrimaryButton>
       {existing && (
         <SecondaryButton danger onClick={onDelete} disabled={busy}>
           মুছে ফেলুন
+        </SecondaryButton>
+      )}
+      {existing?._error && (
+        <SecondaryButton onClick={onDiscard} disabled={busy}>
+          বদল বাতিল করুন
         </SecondaryButton>
       )}
     </form>

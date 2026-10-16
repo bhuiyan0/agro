@@ -6,24 +6,29 @@
 import Link from "next/link";
 import { useApp } from "@/components/app-shell";
 import { ProjectSelector } from "@/components/pickers";
-import { ErrorBox } from "@/components/ui";
-import type { Transaction, WorkLog } from "@/lib/api-client";
+import { transactionsInMonth, workLogsInMonth } from "@/client/queries";
+import { useLiveQuery } from "@/client/use-live-query";
 import { todayIso } from "@/lib/dates";
 import { formatAmount, formatDate, formatNumber, sumAmounts } from "@/lib/format";
-import { useFetch } from "@/lib/use-fetch";
 
 export default function HomePage() {
   const { me, selected } = useApp();
   const today = todayIso();
-  const filter = `month=${today.slice(0, 7)}${selected === "all" ? "" : `&projectId=${selected}`}`;
-  const txns = useFetch<{ transactions: Transaction[] }>(`/api/transactions?${filter}`);
-  const logs = useFetch<{ workLogs: WorkLog[] }>(`/api/work-logs?${filter}`);
+  const projectId = selected === "all" ? null : selected;
+  const data = useLiveQuery(async () => {
+    const month = today.slice(0, 7);
+    const [txns, logs] = await Promise.all([
+      transactionsInMonth(month, projectId),
+      workLogsInMonth(month, projectId),
+    ]);
+    return { txns: txns.filter((t) => t.date === today), logs: logs.filter((w) => w.date === today) };
+  }, [today, projectId]);
 
-  const todays = txns.data?.transactions.filter((t) => t.date === today) ?? [];
+  const todays = data?.txns ?? [];
   const expense = sumAmounts(todays.filter((t) => t.type === "EXPENSE").map((t) => t.amount));
   const income = sumAmounts(todays.filter((t) => t.type === "INCOME").map((t) => t.amount));
-  const workCount = logs.data?.workLogs.filter((w) => w.date === today).length ?? 0;
-  const loading = txns.loading || logs.loading;
+  const workCount = data?.logs.length ?? 0;
+  const loading = !data;
 
   return (
     <main className="flex flex-col gap-2">
@@ -38,9 +43,6 @@ export default function HomePage() {
         <Stat label="আজ আয়" value={loading ? "..." : formatAmount(income)} tone="text-primary" />
         <Stat label="কাজের রিপোর্ট" value={loading ? "..." : formatNumber(workCount)} />
       </section>
-      <div className="px-4">
-        <ErrorBox message={txns.error ?? logs.error} />
-      </div>
 
       <div className="flex flex-col gap-3 px-4 pt-4">
         <Link

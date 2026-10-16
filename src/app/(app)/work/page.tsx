@@ -4,24 +4,23 @@ import Link from "next/link";
 import { useState } from "react";
 import { useApp } from "@/components/app-shell";
 import { MonthPicker, ProjectSelector } from "@/components/pickers";
-import { Chips, EmptyState, ErrorBox, PageHeader } from "@/components/ui";
-import type { WorkLog } from "@/lib/api-client";
+import { workLogsInMonth } from "@/client/queries";
+import { useLiveQuery } from "@/client/use-live-query";
+import { RowStatus } from "@/components/sync-status";
+import { Chips, EmptyState, PageHeader } from "@/components/ui";
 import { WORK_TYPES } from "@/lib/categories";
 import { todayIso } from "@/lib/dates";
 import { formatDate, formatNumber } from "@/lib/format";
 import { groupByDate } from "@/lib/group";
-import { useFetch } from "@/lib/use-fetch";
 
 export default function WorkLogsPage() {
   const { me, selected } = useApp();
   const [month, setMonth] = useState(() => todayIso().slice(0, 7));
   const [workType, setWorkType] = useState("ALL");
 
-  const params = new URLSearchParams({ month });
-  if (selected !== "all") params.set("projectId", selected);
-  if (workType !== "ALL") params.set("workType", workType);
-  const { data, error, loading } = useFetch<{ workLogs: WorkLog[] }>(`/api/work-logs?${params}`);
-  const rows = data?.workLogs ?? [];
+  const projectId = selected === "all" ? null : selected;
+  const data = useLiveQuery(() => workLogsInMonth(month, projectId), [month, projectId]);
+  const rows = (data ?? []).filter((w) => workType === "ALL" || w.workType === workType);
   const projectName = new Map(me.projects.map((p) => [p.id, p.name]));
 
   return (
@@ -49,8 +48,7 @@ export default function WorkLogsPage() {
       </div>
 
       <div className="flex flex-col gap-4 px-4">
-        <ErrorBox message={error} />
-        {loading && !data ? (
+        {!data ? (
           <p className="text-muted">লোড হচ্ছে...</p>
         ) : rows.length === 0 ? (
           <EmptyState>এই মাসে কোনো কাজের রিপোর্ট নেই।</EmptyState>
@@ -83,6 +81,7 @@ export default function WorkLogsPage() {
                             .join(" · ")}
                         </span>
                       )}
+                      <RowStatus pending={w._pending} error={w._error} />
                     </Link>
                   </li>
                 ))}

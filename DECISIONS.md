@@ -37,3 +37,21 @@ Each entry: what was decided, and why. Newest at the bottom.
 - **Last used category, work type and project are remembered per phone** (localStorage), so the most common entry needs only the amount and a tap on save.
 - **New managers join every active project by default**; the owner can narrow this per project.
 - **Plots have no API or UI yet.** The schema keeps `plotId`; the server checks a given plot belongs to the project. No screen in section 7 asks for plots.
+
+## 2026-10-16: Milestone 3 (offline and sync)
+
+- **Screens read and write only the phone's IndexedDB (Dexie).** Every save writes the row and an outbox entry in one IndexedDB transaction, so the UI never waits for the network. Owner-only settings (projects, users) stay online-only.
+- **One database transaction per pushed mutation, not one for the whole batch.** The spec asks for ordered application in a transaction; a whole-batch transaction would let one refused entry undo the accepted ones. Each mutation and its `ProcessedMutation` record commit together, in the order sent, so a mutation is applied exactly once however often it is re-sent.
+- **The sync push reuses the REST service functions** (same validation and permission checks). An AsyncLocalStorage-held transaction client (`getDb()`) lets them run inside the push transaction without threading a client through every call.
+- **Push results: applied, conflict or rejected, each with the server's current row.** An edit to a row deleted on the other phone is a conflict: the delete stands and the phone shows a notice. A refused create or edit stays on the phone, marked, with "save again" and "discard" in the form.
+- **Pull holds back rows younger than five seconds** (database clock). Without it, a slow transaction could commit a row with an `updatedAt` older than the cursor and be missed for good. The phone's own changes return in the push results, so only the other phone's changes wait.
+- **Pull starts over when the user's projects change.** The cursor carries a fingerprint of the project set; being added to a project would otherwise never deliver its older rows.
+- **Two cursors, one per table**, each the `(updatedAt, id)` tuple from the spec, packed into one opaque string.
+- **Sync triggers:** app open, `online`, app back in the foreground, 1.5 s after each change, and the sync button. Failures retry after 2 s, 4 s, 8 s ... up to 5 minutes, with jitter. Web Locks keep one sync running at a time across tabs and the service worker.
+- **Background Sync** is registered after each change; the service worker then runs the same sync engine if the app was closed first. Nothing depends on it.
+- **Logout needs a connection, warns about unsent changes and clears the phone's data.** Logging in as a different user on the same phone also clears it, so data is never mixed.
+- **Cache Components turned off.** No screen uses it (all are client components reading IndexedDB), and Serwist's Turbopack route needs the `force-static` segment option that Cache Components forbids.
+- **Serwist via `@serwist/turbopack`**, which needs `esbuild` (added as a dev dependency) to bundle the worker. The worker is hand-configured rather than using Serwist's default cache rules: all pages and built assets are precached, query strings are ignored when matching, and the API is never cached.
+- **Serwist's "reload when back online" is off.** It would throw away a half-filled form.
+- **App icons** are a white leaf on green, generated as PNGs (192, 512 and a maskable 512).
+- **Client sync code has no automated tests in CI yet.** It was checked in a real browser against the production build (offline create, edit, reload, conflict, rejection, discard). Testing it in Vitest would need `fake-indexeddb` (dev only), which is not on the approved list.

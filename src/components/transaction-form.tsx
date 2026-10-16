@@ -4,7 +4,9 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { DateField, ProjectField, readLocal, useDefaultProject, writeLocal } from "@/components/pickers";
 import { Chips, ErrorBox, Field, inputClass, PrimaryButton, SecondaryButton } from "@/components/ui";
-import { api, type Transaction } from "@/lib/api-client";
+import type { LocalTransaction } from "@/client/local-db";
+import { deleteEntry, discardLocal, saveEntry } from "@/client/store";
+import { useApp } from "@/components/app-shell";
 import { categoriesFor, type TxnTypeName } from "@/lib/categories";
 import { todayIso } from "@/lib/dates";
 import { errorMessage } from "@/lib/messages";
@@ -20,8 +22,9 @@ function defaultCategory(type: TxnTypeName): string {
 }
 
 /** New or edit form for one account entry. */
-export function TransactionForm({ existing }: { existing?: Transaction }) {
+export function TransactionForm({ existing }: { existing?: LocalTransaction }) {
   const router = useRouter();
+  const { me } = useApp();
   const defaultProject = useDefaultProject(LAST_PROJECT);
   const [id] = useState(() => existing?.id ?? crypto.randomUUID());
   const [type, setType] = useState<TxnTypeName>(existing?.type ?? "EXPENSE");
@@ -61,11 +64,9 @@ export function TransactionForm({ existing }: { existing?: Transaction }) {
     }
     setBusy(true);
     setError(null);
-    const result = existing
-      ? await api(`/api/transactions/${id}`, { method: "PUT", body: parsed.data })
-      : await api("/api/transactions", { method: "POST", body: { id, ...parsed.data } });
+    // Saved on the phone at once; it reaches the server on the next sync.
+    await saveEntry("transaction", id, parsed.data, me.user.id);
     setBusy(false);
-    if (!result.ok) return setError(errorMessage(result.code));
     writeLocal(lastCategoryKey(type), category);
     writeLocal(LAST_PROJECT, projectId);
     router.push("/accounts");
@@ -74,9 +75,13 @@ export function TransactionForm({ existing }: { existing?: Transaction }) {
   async function onDelete() {
     if (!confirm("এই হিসাবটি মুছে ফেলবেন?")) return;
     setBusy(true);
-    const result = await api(`/api/transactions/${id}`, { method: "DELETE" });
-    setBusy(false);
-    if (!result.ok) return setError(errorMessage(result.code));
+    await deleteEntry("transaction", id, me.user.id);
+    router.push("/accounts");
+  }
+
+  async function onDiscard() {
+    if (!confirm("এই বদলটি বাতিল করবেন? সার্ভারে যা আছে সেটিই থাকবে।")) return;
+    await discardLocal("transaction", id);
     router.push("/accounts");
   }
 
@@ -149,11 +154,21 @@ export function TransactionForm({ existing }: { existing?: Transaction }) {
         />
       </Field>
 
+      {existing?._error && (
+        <ErrorBox
+          message={`সার্ভার এই এন্ট্রিটি নেয়নি: ${errorMessage(existing._error)} ঠিক করে আবার সংরক্ষণ করুন, অথবা বাতিল করুন।`}
+        />
+      )}
       <ErrorBox message={error} />
       <PrimaryButton disabled={busy}>{busy ? "অপেক্ষা করুন..." : "সংরক্ষণ করুন"}</PrimaryButton>
       {existing && (
         <SecondaryButton danger onClick={onDelete} disabled={busy}>
           মুছে ফেলুন
+        </SecondaryButton>
+      )}
+      {existing?._error && (
+        <SecondaryButton onClick={onDiscard} disabled={busy}>
+          বদল বাতিল করুন
         </SecondaryButton>
       )}
     </form>

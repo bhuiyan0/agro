@@ -3,6 +3,10 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createContext, use, useCallback, useEffect, useState, type ReactNode } from "react";
+import { clearLocalData, getMeta, setMeta } from "@/client/local-db";
+import { startSync } from "@/client/sync-controller";
+import { useLiveQuery } from "@/client/use-live-query";
+import { SyncBar } from "@/components/sync-status";
 import { api, type Me } from "@/lib/api-client";
 import { errorMessage } from "@/lib/messages";
 
@@ -43,24 +47,30 @@ const NAV = [
 export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [me, setMe] = useState<Me | null>(null);
+  // The user and their projects come from the phone first, so the app opens
+  // offline; the server copy replaces it whenever there is a connection.
+  const cached = useLiveQuery(async () => ({ me: (await getMeta("me")) ?? null }), []);
+  const me = cached?.me ?? null;
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelectedState] = useState("all");
 
   const reload = useCallback(async () => {
     const result = await api<Me>("/api/auth/me");
     if (result.ok) {
-      setMe(result.data);
+      const previous = await getMeta("me");
+      // Another person logged in on this phone: never mix their data.
+      if (previous && previous.user.id !== result.data.user.id) await clearLocalData();
+      await setMeta("me", result.data);
       setError(null);
     } else if (result.status === 401) router.replace("/login");
-    else setError(errorMessage(result.code));
+    else if (!(await getMeta("me"))) setError(errorMessage(result.code));
   }, [router]);
 
   useEffect(() => {
     // Reading localStorage must wait until after hydration.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelectedState(readSelected());
-    reload();
+    void reload().then(startSync);
   }, [reload]);
 
   const setSelected = useCallback((value: string) => {
@@ -70,7 +80,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     } catch {}
   }, []);
 
-  if (error) {
+  if (error && !me) {
     return (
       <main className="flex flex-1 flex-col items-center justify-center gap-4 p-5 text-center">
         <p className="font-semibold text-danger">{error}</p>
@@ -87,7 +97,10 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <AppContext value={{ me, isOwner: me.user.role === "OWNER", selected: effective, setSelected, reload }}>
-      <div className="mx-auto flex w-full max-w-xl flex-1 flex-col pb-20">{children}</div>
+      <div className="mx-auto flex w-full max-w-xl flex-1 flex-col pb-20">
+        <SyncBar />
+        {children}
+      </div>
       <nav className="fixed inset-x-0 bottom-0 border-t-2 border-border bg-background">
         <ul className="mx-auto grid max-w-xl grid-cols-4">
           {NAV.map((item) => {

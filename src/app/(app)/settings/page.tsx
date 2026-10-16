@@ -2,17 +2,41 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { clearLocalData, getMeta, localDb } from "@/client/local-db";
+import { syncNow } from "@/client/sync-controller";
+import { useLiveQuery } from "@/client/use-live-query";
 import { useApp } from "@/components/app-shell";
-import { PageHeader, SecondaryButton } from "@/components/ui";
+import { syncSummary, usePendingCount, useSyncState } from "@/components/sync-status";
+import { ErrorBox, PageHeader, PrimaryButton, SecondaryButton } from "@/components/ui";
 import { api } from "@/lib/api-client";
+import { formatNumber } from "@/lib/format";
 
-// Numeral style (milestone 5) and manual sync (milestone 3) are added here later.
+// The numeral-style setting is added here in milestone 5.
 export default function SettingsPage() {
   const router = useRouter();
   const { me, isOwner } = useApp();
+  const state = useSyncState();
+  const pending = usePendingCount();
+  const lastSync = useLiveQuery(async () => ({ at: await getMeta("lastSync") }), []);
+  const [error, setError] = useState<string | null>(null);
+  const summary = syncSummary(state, pending, lastSync?.at);
 
   async function logout() {
-    await api("/api/auth/logout", { method: "POST", body: {} });
+    const waiting = await localDb.outbox.count();
+    if (
+      waiting > 0 &&
+      !confirm(
+        `${formatNumber(waiting)}টি বদল এখনো সার্ভারে পৌঁছায়নি। লগআউট করলে সেগুলো হারিয়ে যাবে। তবুও লগআউট করবেন?`,
+      )
+    ) {
+      return;
+    }
+    const result = await api("/api/auth/logout", { method: "POST", body: {} });
+    // Without a connection the session cannot be ended on the server, and
+    // wiping the phone first would leave it logged in with no data.
+    if (!result.ok && result.code === "NETWORK") return setError("লগআউট করতে ইন্টারনেট লাগবে।");
+    await clearLocalData();
     router.replace("/login");
   }
 
@@ -26,6 +50,15 @@ export default function SettingsPage() {
         </p>
       </section>
 
+      <section className="mx-4 flex flex-col gap-3 rounded-lg border-2 border-border p-4">
+        <h2 className="text-lg font-bold">সিঙ্ক</h2>
+        <p className="font-semibold">{summary.text}</p>
+        {pending > 0 && <p className="text-muted">{formatNumber(pending)}টি বদল ফোনে রাখা আছে।</p>}
+        <PrimaryButton type="button" onClick={() => void syncNow()} disabled={state.running}>
+          {state.running ? "সিঙ্ক হচ্ছে..." : "এখনই সিঙ্ক করুন"}
+        </PrimaryButton>
+      </section>
+
       {isOwner && (
         <nav className="flex flex-col gap-2 px-4">
           <SettingsLink href="/settings/projects">প্রজেক্ট</SettingsLink>
@@ -33,7 +66,8 @@ export default function SettingsPage() {
         </nav>
       )}
 
-      <div className="flex flex-col px-4 pt-4">
+      <div className="flex flex-col gap-3 px-4 pt-4">
+        <ErrorBox message={error} />
         <SecondaryButton onClick={logout}>লগআউট</SecondaryButton>
       </div>
     </main>
