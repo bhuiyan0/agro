@@ -231,6 +231,8 @@ export async function pull(
   return {
     reset,
     hasMore: t.more || w.more,
+    // Rows changed after this moment are not in this pull yet.
+    settledAt: settled.toISOString(),
     cursor: encodeCursor({ v: 1, scope, t: t.position, w: w.position }),
     transactions: t.rows.map(txns.serializeTransaction),
     workLogs: w.rows.map(logs.serializeWorkLog),

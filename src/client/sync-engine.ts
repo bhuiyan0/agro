@@ -35,6 +35,7 @@ type PushResult = {
 type PullPage = {
   reset: boolean;
   hasMore: boolean;
+  settledAt: string;
   cursor: string;
   transactions: ServerRow[];
   workLogs: ServerRow[];
@@ -139,13 +140,25 @@ export async function pushAll() {
   }
 }
 
-/** Fetch changes since the stored cursor, all pages. */
+/**
+ * Fetch changes since the stored cursor, all pages.
+ *
+ * When the server starts over (`reset`), the local copy is replaced: after
+ * the last page, synced rows the server did not send are removed. Rows
+ * changed after the server's settle cutoff are kept, since they were not
+ * due in this pull (a row this phone just pushed is one). The new cursor is
+ * stored only when the whole restart has arrived, so an interrupted restart
+ * begins again instead of leaving stale rows behind.
+ */
 export async function pullAll() {
+  let cursor = await getMeta("cursor");
+  let restart: { seen: Set<string>; settledAt: string } | null = null;
   for (;;) {
-    const cursor = await getMeta("cursor");
     const page = await request<PullPage>(
       `/api/sync/pull${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ""}`,
     );
+    if (page.reset) restart = { seen: new Set(), settledAt: page.settledAt };
+    const last = !page.hasMore;
     await localDb.transaction(
       "rw",
       [localDb.transactions, localDb.workLogs, localDb.outbox, localDb.meta],
@@ -155,23 +168,34 @@ export async function pullAll() {
           [localDb.transactions, page.transactions],
           [localDb.workLogs, page.workLogs],
         ] as const) {
-          if (page.reset) {
-            // Start over, keeping only what the server does not have yet.
-            await table.filter((r) => r._pending === 0 && !r._error && !waiting.has(r.id)).delete();
-          }
           for (const row of rows) {
+            restart?.seen.add(row.id);
             if (waiting.has(row.id)) continue;
             const local = await table.get(row.id);
             if (local?._error) continue;
             await table.put(synced(row) as never);
           }
+          if (restart && last) {
+            const { seen, settledAt } = restart;
+            await table
+              .filter(
+                (r) =>
+                  !seen.has(r.id) &&
+                  r._pending === 0 &&
+                  !r._error &&
+                  !waiting.has(r.id) &&
+                  r.updatedAt <= settledAt,
+              )
+              .delete();
+          }
         }
-        await setMeta("cursor", page.cursor);
+        if (!restart || last) await setMeta("cursor", page.cursor);
         const me = await getMeta("me");
         if (me) await setMeta("me", { ...me, projects: page.projects });
       },
     );
-    if (!page.hasMore) break;
+    cursor = page.cursor;
+    if (last) break;
   }
   await setMeta("lastSync", new Date().toISOString());
 }
