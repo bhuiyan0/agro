@@ -23,7 +23,7 @@ export async function createSession(userId: string, now = new Date()) {
   return { token, expiresAt };
 }
 
-export type SessionUser = { id: string; name: string; phone: string };
+export type SessionUser = { id: string; name: string; phone: string; role: "OWNER" | "MANAGER" };
 
 /**
  * Resolve the session token to a user. Returns null for a missing, unknown or
@@ -37,7 +37,7 @@ export async function authenticate(
   if (!token) return null;
   const session = await db.session.findUnique({
     where: { tokenHash: hashToken(token) },
-    include: { user: { select: { id: true, name: true, phone: true } } },
+    include: { user: { select: { id: true, name: true, phone: true, role: true } } },
   });
   if (!session) return null;
   if (session.expiresAt <= now) {

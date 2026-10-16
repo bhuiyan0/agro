@@ -31,6 +31,9 @@ model User {
   // Normalized Bangladeshi mobile number, 11 digits starting with 01.
   phone        String          @unique
   passwordHash String
+  // App-wide role: OWNER may create and archive projects and manage users
+  // and memberships. Access to a project's data comes from ProjectMember.
+  role         Role            @default(MANAGER)
   createdAt    DateTime        @default(now())
   // Login lockout after repeated wrong passwords.
   failedLogins Int             @default(0)

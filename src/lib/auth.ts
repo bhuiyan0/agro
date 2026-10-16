@@ -1,6 +1,6 @@
 import type { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { apiError } from "@/lib/http";
+import { apiError, HttpError } from "@/lib/http";
 import { getDummyHash, verifyPassword } from "@/lib/password";
 import { normalizePhone } from "@/lib/phone";
 import {
@@ -55,7 +55,12 @@ export async function login(phoneInput: string, password: string, now = new Date
     db.session.deleteMany({ where: { userId: user.id, expiresAt: { lte: now } } }),
   ]);
   const { token, expiresAt } = await createSession(user.id, now);
-  return { ok: true, user: { id: user.id, name: user.name, phone: user.phone }, token, expiresAt };
+  return {
+    ok: true,
+    user: { id: user.id, name: user.name, phone: user.phone, role: user.role },
+    token,
+    expiresAt,
+  };
 }
 
 /**
@@ -69,7 +74,13 @@ export function withAuth<Ctx>(
   return async (request: NextRequest, ctx: Ctx): Promise<NextResponse> => {
     const auth = await authenticate(getSessionToken(request));
     if (!auth) return apiError("UNAUTHENTICATED", 401);
-    const response = await handler(request, auth.user, ctx);
+    let response: NextResponse;
+    try {
+      response = await handler(request, auth.user, ctx);
+    } catch (err) {
+      if (!(err instanceof HttpError)) throw err;
+      response = apiError(err.code, err.status);
+    }
     if (auth.renewed) setSessionCookie(response, auth.renewed.token, auth.renewed.expiresAt);
     return response;
   };

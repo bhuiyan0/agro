@@ -1,16 +1,8 @@
 import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { listProjects } from "@/server/projects";
 
-/** The logged-in user and the projects they are a member of, with their role in each. */
+/** The logged-in user (with app-wide role) and the projects they are a member of. */
 export const GET = withAuth(async (_request, user) => {
-  const memberships = await db.projectMember.findMany({
-    where: { userId: user.id, project: { deletedAt: null } },
-    select: { role: true, project: { select: { id: true, name: true, isActive: true } } },
-    orderBy: { project: { name: "asc" } },
-  });
-  return NextResponse.json({
-    user,
-    projects: memberships.map((m) => ({ ...m.project, role: m.role })),
-  });
+  return NextResponse.json({ user, projects: await listProjects(user) });
 });

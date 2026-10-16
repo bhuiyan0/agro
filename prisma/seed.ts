@@ -16,23 +16,26 @@ function required(name: string): string {
   return value;
 }
 
-async function upsertUser(prefix: "SEED_OWNER" | "SEED_MANAGER") {
+async function upsertUser(prefix: "SEED_OWNER" | "SEED_MANAGER", role: "OWNER" | "MANAGER") {
   const phone = normalizePhone(required(`${prefix}_PHONE`));
   if (!phone) throw new Error(`${prefix}_PHONE is not a valid Bangladeshi mobile number`);
   return db.user.upsert({
     where: { phone },
-    update: {},
+    // Only the role is re-applied on an existing user, so a seed run can
+    // promote the owner after the role column was added.
+    update: { role },
     create: {
       name: required(`${prefix}_NAME`),
       phone,
+      role,
       passwordHash: await hashPassword(required(`${prefix}_PASSWORD`)),
     },
   });
 }
 
 async function main() {
-  const owner = await upsertUser("SEED_OWNER");
-  const manager = await upsertUser("SEED_MANAGER");
+  const owner = await upsertUser("SEED_OWNER", "OWNER");
+  const manager = await upsertUser("SEED_MANAGER", "MANAGER");
 
   for (const project of PROJECTS) {
     await db.project.upsert({ where: { id: project.id }, update: {}, create: project });
