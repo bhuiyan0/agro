@@ -48,3 +48,20 @@ describe("format", () => {
     ]);
   });
 });
+
+describe("numeral setting", () => {
+  it("switches digits but keeps Bengali words and grouping", async () => {
+    const { setNumeralStyle, withDigits } = await import("@/lib/numerals");
+    setNumeralStyle("english");
+    try {
+      expect(formatAmount("1234567.50")).toBe("৳ 12,34,567.50");
+      expect(formatMonth("2026-10")).toBe("অক্টোবর 2026");
+      expect(withDigits("১৫ মিনিট পরে")).toBe("15 মিনিট পরে");
+    } finally {
+      setNumeralStyle("bengali");
+    }
+    expect(formatAmount("1250")).toBe("৳ ১,২৫০");
+    expect(withDigits("১৫ মিনিট")).toBe("১৫ মিনিট");
+    expect(withDigits("01712345678")).toBe("০১৭১২৩৪৫৬৭৮");
+  });
+});

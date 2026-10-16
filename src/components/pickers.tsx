@@ -1,9 +1,9 @@
 "use client";
 
 import { useApp } from "@/components/app-shell";
-import { Chips, inputClass } from "@/components/ui";
+import { Chips, EmptyState } from "@/components/ui";
 import { previousDay, todayIso } from "@/lib/dates";
-import { formatMonth, shiftMonth } from "@/lib/format";
+import { formatDate, formatMonth, shiftMonth } from "@/lib/format";
 
 /** "সব প্রজেক্ট" plus every project the user can see. Changes the app-wide selection. */
 export function ProjectSelector() {
@@ -58,14 +58,27 @@ export function DateField({ value, onChange }: { value: string; onChange: (date:
         value={value === today || value === yesterday ? value : null}
         onChange={onChange}
       />
-      <input
-        type="date"
-        required
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className={inputClass}
-        aria-label="তারিখ"
-      />
+      {/* The date reads in Bengali; the transparent date input laid over it
+          opens the phone's own calendar on tap. */}
+      <label className="relative flex h-14 w-full items-center justify-between rounded-lg border-2 border-border bg-background px-4 text-xl focus-within:border-primary">
+        <span>{formatDate(value)}</span>
+        <span aria-hidden className="text-base text-muted">
+          বদলান
+        </span>
+        <input
+          type="date"
+          required
+          value={value}
+          onChange={(e) => e.target.value && onChange(e.target.value)}
+          onClick={(e) => {
+            try {
+              e.currentTarget.showPicker();
+            } catch {}
+          }}
+          aria-label="তারিখ বেছে নিন"
+          className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+        />
+      </label>
     </div>
   );
 }
@@ -104,4 +117,21 @@ export function writeLocal(key: string, value: string) {
   try {
     localStorage.setItem(key, value);
   } catch {}
+}
+
+/** Shown instead of a new-entry form when there is no active project to add to. */
+export function NoActiveProject() {
+  const { isOwner } = useApp();
+  return (
+    <div className="flex flex-col gap-3 px-4">
+      <EmptyState>
+        কোনো চালু প্রজেক্ট নেই, তাই নতুন এন্ট্রি যোগ করা যাবে না।{" "}
+        {isOwner ? "সেটিংস থেকে একটি প্রজেক্ট তৈরি করুন।" : "মালিককে আপনাকে একটি প্রজেক্টে যোগ করতে বলুন।"}
+      </EmptyState>
+    </div>
+  );
+}
+
+export function useHasActiveProject(): boolean {
+  return useApp().me.projects.some((p) => p.isActive);
 }

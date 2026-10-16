@@ -69,3 +69,12 @@ Each entry: what was decided, and why. Newest at the bottom.
 - **Totals leave out deleted and server-refused entries; entries still waiting to be sent count.**
 - **Profit or loss is labelled "লাভ" / "ক্ষতি"** with an explicit sign.
 - **Reports is a fifth tab** in the bottom bar and is precached for offline use.
+
+## 2026-10-16: Milestone 5 (polish)
+
+- **Numeral setting per phone** (owner's choice), Bengali digits by default. It uses the `bn-BD-u-nu-latn` locale for English digits, so month names and the Bangladeshi digit grouping stay. Fixed texts with digits, phone numbers and stored numbers put back into a form follow the setting too. Stored values are always plain numbers.
+- **Dates show in Bengali on a button that opens the phone's own calendar** (owner's choice), next to the আজ / গতকাল chips. No custom calendar to maintain.
+- **Copy review list in `COPY.md`** (owner's choice): every Bengali text, grouped by screen, with four open wording questions. One fix made already: "এখানের বদলটি" became "এই ফোনের বদলটি".
+- **Install button in Settings** (owner's choice), shown only when the browser offers installing. The browser's own mini install bar is suppressed in favour of it.
+- **No-project empty state:** the new-entry screens explain why nothing can be added when there is no active project, and who can fix it.
+- **Low-end phone check** (Chromium, CPU 6× slower, slow 3G): first visit 5.1 s (309 KB, of which 171 KB JavaScript); later opens 0.6 s, online or offline; saving an entry 0.6 s. Chrome reports no installability errors. Measured in an emulator, not on a real phone.

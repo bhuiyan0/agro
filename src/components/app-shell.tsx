@@ -2,13 +2,22 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { createContext, use, useCallback, useEffect, useState, type ReactNode } from "react";
+import {
+  createContext,
+  use,
+  useCallback,
+  useEffect,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 import { clearLocalData, getMeta, setMeta } from "@/client/local-db";
 import { startSync } from "@/client/sync-controller";
 import { useLiveQuery } from "@/client/use-live-query";
 import { SyncBar } from "@/components/sync-status";
 import { api, type Me } from "@/lib/api-client";
 import { errorMessage } from "@/lib/messages";
+import { getNumeralStyle, subscribeNumerals } from "@/lib/numerals";
 
 // "all" or a project id. Kept per phone so the app reopens where it was left.
 const SELECTED_KEY = "gh.selectedProject";
@@ -54,6 +63,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const me = cached?.me ?? null;
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelectedState] = useState("all");
+  // Changing the numeral style re-renders every screen with the new digits.
+  const numerals = useSyncExternalStore(subscribeNumerals, getNumeralStyle, () => "bengali");
 
   const reload = useCallback(async () => {
     const result = await api<Me>("/api/auth/me");
@@ -99,8 +110,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <AppContext value={{ me, isOwner: me.user.role === "OWNER", selected: effective, setSelected, reload }}>
       <div className="mx-auto flex w-full max-w-xl flex-1 flex-col pb-20">
-        <SyncBar />
-        {children}
+        <div key={numerals} className="flex flex-1 flex-col">
+          <SyncBar />
+          {children}
+        </div>
       </div>
       <nav className="fixed inset-x-0 bottom-0 border-t-2 border-border bg-background">
         <ul className="mx-auto grid max-w-xl grid-cols-5">

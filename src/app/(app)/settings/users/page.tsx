@@ -13,6 +13,7 @@ import {
 } from "@/components/ui";
 import { api, type Role, type User } from "@/lib/api-client";
 import { errorMessage } from "@/lib/messages";
+import { withDigits } from "@/lib/numerals";
 import { useFetch } from "@/lib/use-fetch";
 
 const ROLE_OPTIONS = [
@@ -78,7 +79,7 @@ function NewUser({ onCreated }: { onCreated: () => Promise<void> }) {
     if (!result.ok) {
       return setError(
         result.code === "VALIDATION_FAILED"
-          ? "নাম, সঠিক ফোন নম্বর এবং কমপক্ষে ৬ অক্ষরের পাসওয়ার্ড দিন।"
+          ? withDigits("নাম, সঠিক ফোন নম্বর এবং কমপক্ষে ৬ অক্ষরের পাসওয়ার্ড দিন।")
           : errorMessage(result.code),
       );
     }
@@ -117,11 +118,11 @@ function NewUser({ onCreated }: { onCreated: () => Promise<void> }) {
           inputMode="tel"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
-          placeholder="০১XXXXXXXXX"
+          placeholder={withDigits("০১XXXXXXXXX")}
           className={inputClass}
         />
       </Field>
-      <Field label="পাসওয়ার্ড (কমপক্ষে ৬ অক্ষর)">
+      <Field label={withDigits("পাসওয়ার্ড (কমপক্ষে ৬ অক্ষর)")}>
         <input
           required
           minLength={6}
@@ -165,7 +166,7 @@ function UserCard({ user, onChanged }: { user: User; onChanged: () => Promise<vo
     if (!result.ok) {
       return setError(
         result.code === "VALIDATION_FAILED"
-          ? "পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।"
+          ? withDigits("পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।")
           : errorMessage(result.code),
       );
     }
@@ -188,7 +189,7 @@ function UserCard({ user, onChanged }: { user: User; onChanged: () => Promise<vo
             {user.name}
             {user.id === me.user.id ? " (আপনি)" : ""}
           </span>
-          <span className="text-sm text-muted">{user.phone}</span>
+          <span className="text-sm text-muted">{withDigits(user.phone)}</span>
         </span>
         <span className="text-muted">{user.role === "OWNER" ? "মালিক" : "ম্যানেজার"}</span>
       </button>

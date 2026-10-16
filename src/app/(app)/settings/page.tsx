@@ -2,17 +2,24 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
+import { getInstallState, promptInstall, subscribeInstall } from "@/client/install";
 import { clearLocalData, getMeta, localDb } from "@/client/local-db";
 import { syncNow } from "@/client/sync-controller";
 import { useLiveQuery } from "@/client/use-live-query";
 import { useApp } from "@/components/app-shell";
 import { syncSummary, usePendingCount, useSyncState } from "@/components/sync-status";
-import { ErrorBox, PageHeader, PrimaryButton, SecondaryButton } from "@/components/ui";
+import { Chips, ErrorBox, PageHeader, PrimaryButton, SecondaryButton } from "@/components/ui";
 import { api } from "@/lib/api-client";
 import { formatNumber } from "@/lib/format";
+import {
+  getNumeralStyle,
+  setNumeralStyle,
+  subscribeNumerals,
+  withDigits,
+  type NumeralStyle,
+} from "@/lib/numerals";
 
-// The numeral-style setting is added here in milestone 5.
 export default function SettingsPage() {
   const router = useRouter();
   const { me, isOwner } = useApp();
@@ -21,6 +28,8 @@ export default function SettingsPage() {
   const lastSync = useLiveQuery(async () => ({ at: await getMeta("lastSync") }), []);
   const [error, setError] = useState<string | null>(null);
   const summary = syncSummary(state, pending, lastSync?.at);
+  const numerals = useSyncExternalStore(subscribeNumerals, getNumeralStyle, () => "bengali" as const);
+  const install = useSyncExternalStore(subscribeInstall, getInstallState, () => "unavailable" as const);
 
   async function logout() {
     const waiting = await localDb.outbox.count();
@@ -46,7 +55,7 @@ export default function SettingsPage() {
       <section className="mx-4 rounded-lg border-2 border-border p-4">
         <p className="text-xl font-bold">{me.user.name}</p>
         <p className="text-muted">
-          {me.user.phone} · {isOwner ? "মালিক" : "ম্যানেজার"}
+          {withDigits(me.user.phone)} · {isOwner ? "মালিক" : "ম্যানেজার"}
         </p>
       </section>
 
@@ -58,6 +67,27 @@ export default function SettingsPage() {
           {state.running ? "সিঙ্ক হচ্ছে..." : "এখনই সিঙ্ক করুন"}
         </PrimaryButton>
       </section>
+
+      <section className="mx-4 flex flex-col gap-3 rounded-lg border-2 border-border p-4">
+        <h2 className="text-lg font-bold">সংখ্যা দেখানো</h2>
+        <Chips<NumeralStyle>
+          label="সংখ্যা দেখানো"
+          options={[
+            { value: "bengali", label: "বাংলা ১২৩" },
+            { value: "english", label: "ইংরেজি 123" },
+          ]}
+          value={numerals}
+          onChange={setNumeralStyle}
+        />
+      </section>
+
+      {install === "available" && (
+        <div className="px-4">
+          <PrimaryButton type="button" onClick={() => void promptInstall()}>
+            অ্যাপ ইনস্টল করুন
+          </PrimaryButton>
+        </div>
+      )}
 
       {isOwner && (
         <nav className="flex flex-col gap-2 px-4">

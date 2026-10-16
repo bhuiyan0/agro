@@ -2,6 +2,8 @@
 
 import { SerwistProvider, useSerwist } from "@serwist/turbopack/react";
 import { useEffect, type ReactNode } from "react";
+// Loaded on every page so the install prompt is caught as soon as it fires.
+import "@/client/install";
 
 // Registers the service worker in production. Serwist's defaults would
 // reload the page when the connection returns, which would throw away a

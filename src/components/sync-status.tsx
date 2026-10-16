@@ -84,7 +84,7 @@ export function SyncBar() {
           {notices.map((n) => (
             <p key={`${n.id}-${n.at}`} className="font-semibold text-amber-900">
               {n.code === "ROW_DELETED"
-                ? "একটি এন্ট্রি অন্য ফোনে মুছে ফেলা হয়েছে, তাই এখানের বদলটি রাখা যায়নি।"
+                ? "একটি এন্ট্রি অন্য ফোনে মুছে ফেলা হয়েছে, তাই এই ফোনের বদলটি রাখা যায়নি।"
                 : `একটি এন্ট্রি মোছা যায়নি: ${errorMessage(n.code)}`}
             </p>
           ))}

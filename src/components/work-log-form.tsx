@@ -10,6 +10,7 @@ import { useApp } from "@/components/app-shell";
 import { WORK_TYPES } from "@/lib/categories";
 import { todayIso } from "@/lib/dates";
 import { errorMessage } from "@/lib/messages";
+import { withDigits } from "@/lib/numerals";
 import { toAsciiDigits } from "@/lib/phone";
 import { WorkLogFields } from "@/lib/schemas";
 
@@ -28,8 +29,10 @@ export function WorkLogForm({ existing }: { existing?: LocalWorkLog }) {
   const defaultProject = useDefaultProject(LAST_PROJECT);
   const [id] = useState(() => existing?.id ?? crypto.randomUUID());
   const [workType, setWorkType] = useState(() => existing?.workType ?? defaultWorkType());
-  const [workers, setWorkers] = useState(existing?.workers?.toString() ?? "");
-  const [hours, setHours] = useState(existing?.hours ? String(Number(existing.hours)) : "");
+  const [workers, setWorkers] = useState(
+    existing?.workers != null ? withDigits(String(existing.workers)) : "",
+  );
+  const [hours, setHours] = useState(existing?.hours ? withDigits(String(Number(existing.hours))) : "");
   const [date, setDate] = useState(existing?.date ?? todayIso());
   const [projectId, setProjectId] = useState(existing?.projectId ?? defaultProject);
   const [note, setNote] = useState(existing?.note ?? "");

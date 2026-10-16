@@ -10,6 +10,7 @@ import { useApp } from "@/components/app-shell";
 import { categoriesFor, type TxnTypeName } from "@/lib/categories";
 import { todayIso } from "@/lib/dates";
 import { errorMessage } from "@/lib/messages";
+import { withDigits } from "@/lib/numerals";
 import { toAsciiDigits } from "@/lib/phone";
 import { TransactionFields } from "@/lib/schemas";
 
@@ -29,7 +30,7 @@ export function TransactionForm({ existing }: { existing?: LocalTransaction }) {
   const [id] = useState(() => existing?.id ?? crypto.randomUUID());
   const [type, setType] = useState<TxnTypeName>(existing?.type ?? "EXPENSE");
   const [category, setCategory] = useState(() => existing?.category ?? defaultCategory("EXPENSE"));
-  const [amount, setAmount] = useState(existing ? String(Number(existing.amount)) : "");
+  const [amount, setAmount] = useState(existing ? withDigits(String(Number(existing.amount))) : "");
   const [date, setDate] = useState(existing?.date ?? todayIso());
   const [projectId, setProjectId] = useState(existing?.projectId ?? defaultProject);
   const [note, setNote] = useState(existing?.note ?? "");
@@ -120,7 +121,7 @@ export function TransactionForm({ existing }: { existing?: LocalTransaction }) {
           required
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
-          placeholder="০"
+          placeholder={withDigits("০")}
           className={`${inputClass} text-2xl font-bold`}
         />
       </Field>

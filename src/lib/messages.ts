@@ -1,3 +1,5 @@
+import { withDigits } from "@/lib/numerals";
+
 // Bengali text for API error codes. The API never returns UI text.
 const ERROR_MESSAGES: Record<string, string> = {
   INVALID_JSON: "অনুরোধটি ঠিক নেই। আবার চেষ্টা করুন।",
@@ -17,5 +19,5 @@ const ERROR_MESSAGES: Record<string, string> = {
 };
 
 export function errorMessage(code: string | undefined): string {
-  return ERROR_MESSAGES[code ?? "UNKNOWN"] ?? ERROR_MESSAGES.UNKNOWN;
+  return withDigits(ERROR_MESSAGES[code ?? "UNKNOWN"] ?? ERROR_MESSAGES.UNKNOWN);
 }
