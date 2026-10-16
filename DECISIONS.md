@@ -21,3 +21,19 @@ Each entry: what was decided, and why. Newest at the bottom.
 - **Tests run against a separate database (`TEST_DATABASE_URL`).** The integration tests call the route handlers directly and empty every table between tests.
 - **Seed:** one owner and one manager from environment variables (no passwords in the repo), and two projects, "বাগানের ফল" and "খামার", both users members. Re-running the seed changes nothing.
 - **Added to the spec schema:** `Session` table, `User.failedLogins` and `User.lockedUntil`, an index on `ProjectMember.userId` and on `Plot(updatedAt, id)` for sync pulls.
+
+## 2026-10-16: Milestone 2 (online CRUD)
+
+- **App-wide role on `User` (OWNER or MANAGER).** Chosen by the owner. OWNER creates and archives projects and manages users and memberships. Owners are members of every project automatically, so "the owner sees everything" always holds. Access to a project's data still comes from `ProjectMember`, so managers see only their projects.
+- **The last owner cannot be demoted.** Otherwise nobody could manage the app.
+- **Categories and work types as listed in CLAUDE.md**, confirmed by the owner. They live in `src/lib/categories.ts`. The server only accepts listed values, so typos do not split the reports.
+- **Entries are created with the device's UUID, and a repeated create returns the existing row (200).** This is the groundwork for offline sync in milestone 3.
+- **Update is a full replace (PUT), not a partial patch.** Category validity depends on the type, and the sync outbox will carry whole rows anyway.
+- **Updating a deleted entry fails with `ROW_DELETED` (409); deleting twice succeeds.** This matches the conflict rule in CLAUDE.md section 6.
+- **Archived projects are read-only.** Old entries stay visible; new entries, edits and deletes are refused (`PROJECT_ARCHIVED`).
+- **Amounts travel as strings ("1250.50").** This avoids floating-point rounding; client totals are summed in paisa.
+- **Lists are filtered by month and capped at 1000 rows.**
+- **Edit pages take the id as a query parameter (`/accounts/edit?id=`).** Every screen stays a static page, which milestone 3 can cache for offline use.
+- **Last used category, work type and project are remembered per phone** (localStorage), so the most common entry needs only the amount and a tap on save.
+- **New managers join every active project by default**; the owner can narrow this per project.
+- **Plots have no API or UI yet.** The schema keeps `plotId`; the server checks a given plot belongs to the project. No screen in section 7 asks for plots.

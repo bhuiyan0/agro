@@ -22,7 +22,37 @@ export async function api<T>(
   return { ok: true, data: json as T };
 }
 
-export type Me = {
-  user: { id: string; name: string; phone: string };
-  projects: { id: string; name: string; isActive: boolean; role: "OWNER" | "MANAGER" }[];
+export type Role = "OWNER" | "MANAGER";
+export type Project = { id: string; name: string; isActive: boolean; role: Role };
+export type Me = { user: { id: string; name: string; phone: string; role: Role }; projects: Project[] };
+
+export type Transaction = {
+  id: string;
+  projectId: string;
+  type: "EXPENSE" | "INCOME";
+  category: string;
+  amount: string;
+  note: string | null;
+  plotId: string | null;
+  date: string;
+  createdBy: string;
+  updatedBy: string;
+  updatedAt: string;
 };
+
+export type WorkLog = {
+  id: string;
+  projectId: string;
+  workType: string;
+  workers: number | null;
+  hours: string | null;
+  note: string | null;
+  plotId: string | null;
+  date: string;
+  createdBy: string;
+  updatedBy: string;
+  updatedAt: string;
+};
+
+export type User = { id: string; name: string; phone: string; role: Role; createdAt: string };
+export type Member = { id: string; name: string; phone: string; role: Role };

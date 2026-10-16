@@ -36,3 +36,10 @@ export function todayIso(now = new Date()): string {
   // en-CA formats as YYYY-MM-DD.
   return new Intl.DateTimeFormat("en-CA", { timeZone: TIME_ZONE }).format(now);
 }
+
+/** The calendar day before "YYYY-MM-DD". */
+export function previousDay(isoDate: string): string {
+  const d = toDbDate(isoDate);
+  d.setUTCDate(d.getUTCDate() - 1);
+  return fromDbDate(d);
+}
