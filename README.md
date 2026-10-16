@@ -65,4 +65,4 @@ The service worker is only active in a production build (`npm run build && npm s
 
 ## Deploying (Vercel + Neon)
 
-Not set up yet. When it is: create a Neon database, set `DATABASE_URL` in the Vercel project, and run `npm run db:deploy` against it before the first deploy.
+Step by step in [DEPLOY.md](DEPLOY.md).
