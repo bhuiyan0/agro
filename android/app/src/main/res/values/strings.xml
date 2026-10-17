@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">গ্রিন হিল (ডেমো)</string>
+    <string name="title_activity_main">গ্রিন হিল (ডেমো)</string>
+    <string name="package_name">bd.greenhill.demo</string>
+    <string name="custom_url_scheme">bd.greenhill.demo</string>
+</resources>

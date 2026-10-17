@@ -12,6 +12,7 @@ import {
   type ReactNode,
 } from "react";
 import { clearLocalData, getMeta, setMeta } from "@/client/local-db";
+import { DEMO_AVAILABLE, isDemo } from "@/client/demo";
 import { startSync } from "@/client/sync-controller";
 import { useLiveQuery } from "@/client/use-live-query";
 import { SyncBar } from "@/components/sync-status";
@@ -67,6 +68,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   const numerals = useSyncExternalStore(subscribeNumerals, getNumeralStyle, () => "bengali");
 
   const reload = useCallback(async () => {
+    if (isDemo()) return;
+    // The test APK has no server: the demo is the only way in.
+    if (DEMO_AVAILABLE) return router.replace("/login");
     const result = await api<Me>("/api/auth/me");
     if (result.ok) {
       const previous = await getMeta("me");

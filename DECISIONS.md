@@ -78,3 +78,13 @@ Each entry: what was decided, and why. Newest at the bottom.
 - **Install button in Settings** (owner's choice), shown only when the browser offers installing. The browser's own mini install bar is suppressed in favour of it.
 - **No-project empty state:** the new-entry screens explain why nothing can be added when there is no active project, and who can fix it.
 - **Low-end phone check** (Chromium, CPU 6× slower, slow 3G): first visit 5.1 s (309 KB, of which 171 KB JavaScript); later opens 0.6 s, online or offline; saving an entry 0.6 s. Chrome reports no installability errors. Measured in an emulator, not on a real phone.
+
+## 2026-10-17: Android test APK with demo mode
+
+- **A demo-mode APK for trying the screens on a phone** (owner's request), built with Capacitor (approved by the owner) around a static export of the app. It has no server: login is replaced by a "ডেমো দেখুন" button that loads fixed sample data onto the phone. Saves stay on the phone, sync never runs, and the owner-only settings that need the server are hidden.
+- **Demo mode exists only in the APK build** (`NEXT_PUBLIC_APK=1`). The deployed web app is unchanged: no demo button, same API, same service worker.
+- **The APK build is a static export** (`output: "export"`, `trailingSlash`). Only `.tsx` files count as routes in that build, which leaves out the API route handlers and the web manifest without moving files; its type check is skipped because route types are not generated for the left-out handlers (the normal build and CI type-check everything).
+- **No service worker in the APK**: the app's files are inside the APK already.
+- **App id `bd.greenhill.demo`, name "গ্রিন হিল (ডেমো)"**, so it can sit next to the real app later. Debug-signed, for sideloading only, not for the Play Store.
+- **Launcher icons and splash** use the same white leaf on green as the web app.
+- **Building it needs `dl.google.com`** (Android SDK and Google's Maven repository), which this cloud environment's network policy blocks by default.

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useSyncExternalStore } from "react";
+import { isDemo } from "@/client/demo";
 import { getMeta, localDb } from "@/client/local-db";
 import { dismissNotices } from "@/client/store";
 import { getSyncState, subscribe, syncNow, type SyncState } from "@/client/sync-controller";
@@ -31,6 +32,7 @@ function lastSyncLabel(iso: string | undefined) {
 }
 
 export function syncSummary(state: SyncState, pending: number, lastSync: string | undefined) {
+  if (isDemo()) return { tone: "warn", text: "ডেমো মোড: সব কিছু শুধু এই ফোনে থাকে" };
   if (state.problem === "auth") return { tone: "danger", text: "আবার লগইন করুন। এন্ট্রিগুলো ফোনে রাখা আছে।" };
   if (state.running) return { tone: "muted", text: "সিঙ্ক হচ্ছে..." };
   const waiting = pending > 0 ? `${formatNumber(pending)}টি বদল পাঠানো বাকি` : null;

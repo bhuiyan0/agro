@@ -13,7 +13,8 @@ export function ServiceWorker({ children }: { children: ReactNode }) {
   return (
     <SerwistProvider
       swUrl="/serwist/sw.js"
-      disable={process.env.NODE_ENV !== "production"}
+      // The Android test APK serves its files from inside the app.
+      disable={process.env.NODE_ENV !== "production" || process.env.NEXT_PUBLIC_APK === "1"}
       register={false}
       reloadOnOnline={false}
       cacheOnNavigation={false}

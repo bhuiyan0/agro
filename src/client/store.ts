@@ -9,6 +9,7 @@ import {
   type LocalTransaction,
   type LocalWorkLog,
 } from "@/client/local-db";
+import { isDemo } from "@/client/demo";
 import { requestSync } from "@/client/sync-controller";
 import type { TransactionInput, WorkLogInput } from "@/lib/schemas";
 
@@ -18,6 +19,7 @@ type Row = { transaction: LocalTransaction; workLog: LocalWorkLog };
 /** Create or edit. `id` is generated on the phone for new entries. */
 export async function saveEntry<E extends Entity>(entity: E, id: string, input: Input[E], userId: string) {
   const table = tableFor(entity);
+  const demo = isDemo();
   await localDb.transaction("rw", [table, localDb.outbox], async () => {
     const prev = (await table.get(id)) as Row[E] | undefined;
     const queued = await localDb.outbox.where("id").equals(id).count();
@@ -31,10 +33,12 @@ export async function saveEntry<E extends Entity>(entity: E, id: string, input: 
       updatedBy: userId,
       updatedAt: now,
       deletedAt: null,
-      _pending: 1,
-      _synced: prev?._synced ?? 0,
+      // Demo mode never sends anything, so nothing is waiting.
+      _pending: demo ? 0 : 1,
+      _synced: demo ? 1 : (prev?._synced ?? 0),
       _error: undefined,
     } as never);
+    if (demo) return;
     await localDb.outbox.add({
       mutationId: crypto.randomUUID(),
       entity,
@@ -49,12 +53,13 @@ export async function saveEntry<E extends Entity>(entity: E, id: string, input: 
 
 export async function deleteEntry(entity: Entity, id: string, userId: string) {
   const table = tableFor(entity);
+  const demo = isDemo();
   await localDb.transaction("rw", [table, localDb.outbox], async () => {
     const prev = await table.get(id);
     if (!prev) return;
     const queued = await localDb.outbox.where("id").equals(id).count();
-    if (!prev._synced && queued === 0) {
-      // The server never had it: nothing to tell the server.
+    if (demo || (!prev._synced && queued === 0)) {
+      // The server never had it (or this is the demo): nothing to tell the server.
       await table.delete(id);
       return;
     }

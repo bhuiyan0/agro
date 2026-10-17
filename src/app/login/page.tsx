@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { DEMO_AVAILABLE, startDemo } from "@/client/demo";
 import { clearLocalData, getMeta } from "@/client/local-db";
 import { api, type Me } from "@/lib/api-client";
 import { errorMessage } from "@/lib/messages";
@@ -29,6 +30,11 @@ export default function LoginPage() {
     router.replace("/");
   }
 
+  async function onDemo() {
+    await startDemo();
+    router.replace("/");
+  }
+
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center gap-8 px-5 py-10">
       <div>
@@ -36,47 +42,65 @@ export default function LoginPage() {
         <p className="mt-1 text-muted">বাগানের হিসাব ও কাজের রিপোর্ট</p>
       </div>
 
-      <form onSubmit={onSubmit} className="flex flex-col gap-5">
-        <label className="flex flex-col gap-2">
-          <span className="font-semibold">ফোন নম্বর</span>
-          <input
-            type="tel"
-            inputMode="tel"
-            autoComplete="username"
-            required
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="০১XXXXXXXXX"
-            className="h-14 rounded-lg border-2 border-border px-4 text-xl focus:border-primary focus:outline-none"
-          />
-        </label>
+      {!DEMO_AVAILABLE && (
+        <form onSubmit={onSubmit} className="flex flex-col gap-5">
+          <label className="flex flex-col gap-2">
+            <span className="font-semibold">ফোন নম্বর</span>
+            <input
+              type="tel"
+              inputMode="tel"
+              autoComplete="username"
+              required
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="০১XXXXXXXXX"
+              className="h-14 rounded-lg border-2 border-border px-4 text-xl focus:border-primary focus:outline-none"
+            />
+          </label>
 
-        <label className="flex flex-col gap-2">
-          <span className="font-semibold">পাসওয়ার্ড</span>
-          <input
-            type="password"
-            autoComplete="current-password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="h-14 rounded-lg border-2 border-border px-4 text-xl focus:border-primary focus:outline-none"
-          />
-        </label>
+          <label className="flex flex-col gap-2">
+            <span className="font-semibold">পাসওয়ার্ড</span>
+            <input
+              type="password"
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="h-14 rounded-lg border-2 border-border px-4 text-xl focus:border-primary focus:outline-none"
+            />
+          </label>
 
-        {error && (
-          <p role="alert" className="rounded-lg border-2 border-danger px-4 py-3 font-semibold text-danger">
-            {error}
+          {error && (
+            <p role="alert" className="rounded-lg border-2 border-danger px-4 py-3 font-semibold text-danger">
+              {error}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            disabled={busy}
+            className="h-14 rounded-lg bg-primary text-xl font-bold text-primary-foreground disabled:opacity-60"
+          >
+            {busy ? "অপেক্ষা করুন..." : "লগইন"}
+          </button>
+        </form>
+      )}
+
+      {DEMO_AVAILABLE && (
+        <div className="flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={onDemo}
+            className="h-14 rounded-lg border-2 border-primary text-xl font-bold text-primary"
+          >
+            ডেমো দেখুন
+          </button>
+          <p className="text-center text-sm text-muted">
+            এটি পরীক্ষার অ্যাপ। সার্ভার ছাড়া নমুনা হিসাব দিয়ে সব স্ক্রিন চালিয়ে দেখুন। কিছুই কোথাও পাঠানো
+            হবে না।
           </p>
-        )}
-
-        <button
-          type="submit"
-          disabled={busy}
-          className="h-14 rounded-lg bg-primary text-xl font-bold text-primary-foreground disabled:opacity-60"
-        >
-          {busy ? "অপেক্ষা করুন..." : "লগইন"}
-        </button>
-      </form>
+        </div>
+      )}
     </main>
   );
 }

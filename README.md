@@ -63,6 +63,19 @@ All responses are JSON. Errors look like `{ "error": { "code": "INVALID_CREDENTI
 
 The service worker is only active in a production build (`npm run build && npm start`). To try offline mode, open the app once online, then switch the phone or browser to offline: entries save on the phone and show "পাঠানো বাকি" until the connection returns.
 
+## Android test APK (demo mode)
+
+A debug APK for trying the screens on a phone without a server. It opens with a "ডেমো দেখুন" button and fixed sample data; nothing is sent anywhere.
+
+Needs JDK 21 and the Android SDK (`ANDROID_HOME`, platform and build tools for API 36), then:
+
+```sh
+npm run apk
+# → android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+Copy the APK to the phone and open it (allow "install unknown apps" for the file manager or browser when Android asks).
+
 ## Deploying (Vercel + Neon)
 
 Step by step in [DEPLOY.md](DEPLOY.md).

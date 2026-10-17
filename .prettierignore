@@ -5,3 +5,5 @@ prisma/migrations
 package-lock.json
 CLAUDE.md
 AGENTS.md
+android
+out

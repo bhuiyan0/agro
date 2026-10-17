@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useSyncExternalStore } from "react";
 import { getInstallState, promptInstall, subscribeInstall } from "@/client/install";
+import { endDemo, isDemo } from "@/client/demo";
 import { clearLocalData, getMeta, localDb } from "@/client/local-db";
 import { syncNow } from "@/client/sync-controller";
 import { useLiveQuery } from "@/client/use-live-query";
@@ -32,6 +33,10 @@ export default function SettingsPage() {
   const install = useSyncExternalStore(subscribeInstall, getInstallState, () => "unavailable" as const);
 
   async function logout() {
+    if (isDemo()) {
+      await endDemo();
+      return router.replace("/login");
+    }
     const waiting = await localDb.outbox.count();
     if (
       waiting > 0 &&
@@ -89,7 +94,7 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {isOwner && (
+      {isOwner && !isDemo() && (
         <nav className="flex flex-col gap-2 px-4">
           <SettingsLink href="/settings/projects">প্রজেক্ট</SettingsLink>
           <SettingsLink href="/settings/users">ব্যবহারকারী</SettingsLink>

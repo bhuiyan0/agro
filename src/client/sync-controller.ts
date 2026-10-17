@@ -3,6 +3,8 @@
 // foreground, shortly after each local change, and on "sync now". Failures
 // retry with backoff. Background Sync in the service worker is a bonus on
 // top; nothing depends on it.
+// The Android test APK has no server, so it never syncs.
+import { DEMO_AVAILABLE } from "@/client/demo";
 import { AuthError, syncOnce } from "@/client/sync-engine";
 
 export type SyncState = {
@@ -41,6 +43,7 @@ function backoff(n: number) {
 }
 
 export async function syncNow(): Promise<void> {
+  if (DEMO_AVAILABLE) return;
   if (state.running) {
     again = true;
     return;
@@ -70,7 +73,7 @@ export async function syncNow(): Promise<void> {
 
 /** Ask for a sync soon. Called after every local change. */
 export function requestSync() {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined" || DEMO_AVAILABLE) return;
   clearTimeout(debounceTimer);
   debounceTimer = setTimeout(syncNow, 1500);
   // Lets the service worker finish the push if the app is closed first.
@@ -85,7 +88,7 @@ export function requestSync() {
 
 /** Start the triggers once per page load, and sync. */
 export function startSync() {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined" || DEMO_AVAILABLE) return;
   // Opening the app again (for example after logging in) syncs again.
   if (started) return void syncNow();
   started = true;
