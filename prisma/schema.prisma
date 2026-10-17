@@ -1,0 +1,145 @@
+// Data model for the Green Hill app. See CLAUDE.md section 5 for the rules.
+//
+// Synced tables (Plot, Transaction, WorkLog):
+// - `id` is a UUID generated on the device, so there is no default here.
+// - `updatedAt` is set by the server on every write.
+// - Deletes are soft (`deletedAt`).
+// - `createdBy` / `updatedBy` hold user ids.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  OWNER
+  MANAGER
+}
+
+enum TxnType {
+  EXPENSE
+  INCOME
+}
+
+model User {
+  id           String          @id @default(uuid())
+  name         String
+  // Normalized Bangladeshi mobile number, 11 digits starting with 01.
+  phone        String          @unique
+  passwordHash String
+  // App-wide role: OWNER may create and archive projects and manage users
+  // and memberships. Access to a project's data comes from ProjectMember.
+  role         Role            @default(MANAGER)
+  createdAt    DateTime        @default(now())
+  // Login lockout after repeated wrong passwords.
+  failedLogins Int             @default(0)
+  lockedUntil  DateTime?
+  memberships  ProjectMember[]
+  sessions     Session[]
+}
+
+// Server-side login session. The cookie holds a random token; only its
+// SHA-256 hash is stored, so a database leak does not leak live sessions.
+model Session {
+  id        String   @id @default(uuid())
+  tokenHash String   @unique
+  userId    String
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Project {
+  id        String          @id @default(uuid())
+  name      String
+  isActive  Boolean         @default(true)
+  updatedAt DateTime        @updatedAt
+  deletedAt DateTime?
+  members   ProjectMember[]
+  plots     Plot[]
+  txns      Transaction[]
+  workLogs  WorkLog[]
+}
+
+model ProjectMember {
+  projectId String
+  userId    String
+  role      Role    @default(MANAGER)
+  project   Project @relation(fields: [projectId], references: [id])
+  user      User    @relation(fields: [userId], references: [id])
+
+  @@id([projectId, userId])
+  @@index([userId])
+}
+
+// Optional sub-area inside a project (a block, a section). Keep it minimal.
+model Plot {
+  id        String    @id
+  projectId String
+  name      String
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  createdBy String
+  updatedBy String
+  project   Project   @relation(fields: [projectId], references: [id])
+
+  @@index([updatedAt, id])
+}
+
+model Transaction {
+  id        String    @id
+  projectId String
+  type      TxnType
+  category  String
+  amount    Decimal   @db.Decimal(12, 2)
+  note      String?
+  plotId    String?
+  date      DateTime  @db.Date
+  createdBy String
+  updatedBy String
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  project   Project   @relation(fields: [projectId], references: [id])
+
+  @@index([projectId, date])
+  @@index([updatedAt, id])
+}
+
+model WorkLog {
+  id        String    @id
+  projectId String
+  workType  String
+  plotId    String?
+  workers   Int?
+  hours     Decimal?  @db.Decimal(5, 2)
+  note      String?
+  date      DateTime  @db.Date
+  createdBy String
+  updatedBy String
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  project   Project   @relation(fields: [projectId], references: [id])
+
+  @@index([projectId, date])
+  @@index([updatedAt, id])
+}
+
+// Sync push idempotency: every mutation a device sends carries a
+// device-generated id. Once applied (or rejected), its result is stored here,
+// so sending the same mutation again returns the same result and changes
+// nothing.
+model ProcessedMutation {
+  mutationId String   @id
+  userId     String
+  status     String
+  code       String?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+}

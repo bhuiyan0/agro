@@ -19,10 +19,13 @@
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.1",
     "@prisma/client": "^7.10.1",
+    "@serwist/turbopack": "^9.5.13",
+    "dexie": "^4.4.6",
     "next": "16.4.2",
     "pg": "^8.23.1",
     "react": "19.3.0",
     "react-dom": "19.3.0",
+    "serwist": "^9.5.13",
     "zod": "^4.6.7"
   },
   "devDependencies": {
@@ -31,8 +34,10 @@
     "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "esbuild": "^0.28.2",
     "eslint": "^9",
     "eslint-config-next": "16.4.2",
+    "fake-indexeddb": "^6.2.5",
     "prettier": "^3.9.10",
     "prisma": "^7.10.1",
     "tailwindcss": "^4",
